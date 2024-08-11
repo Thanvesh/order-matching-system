@@ -2,7 +2,6 @@ const express = require('express');
 const cors = require('cors');
 const mysql = require('mysql2');
 const db = require('./db');
-const { Console } = require('winston/lib/winston/transports');
 const app = express();
 
 app.use(cors());
@@ -47,8 +46,7 @@ const matchOrder = async () => {
     const [sellerOrders] = await db.promise().query(
       `SELECT * FROM pending_orders WHERE seller_qty > 0 ORDER BY seller_price ASC, created_at ASC`
     );
-    console.log('Buyer Orders:', buyerOrders);
-    console.log('Seller Orders:', sellerOrders);
+
     // Process matches
     for (let i = 0; i < buyerOrders.length; i++) {
       const buyer = buyerOrders[i];
@@ -120,13 +118,6 @@ const matchOrder = async () => {
     console.error('Error matching orders:', err);
   }
 };
-
-
-
-
-
-
-
 
 
 // Get all pending orders
