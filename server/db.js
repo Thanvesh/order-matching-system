@@ -1,7 +1,8 @@
 const mysql = require('mysql2');
 
 const connection = mysql.createConnection({
-  host: 'localhost',  // Your MySQL host
+  host: 'tcp://0.tcp.in.ngrok.io',  // Your MySQL host
+  port:11036 ,
   user: 'root',       // Your MySQL username
   password: 'Thani@1997',       // Your MySQL password
   database: 'order_matching'  // Your MySQL database name
