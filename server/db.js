@@ -1,4 +1,5 @@
 const mysql = require('mysql2');
+require('dotenv').config();
 
 const connection = mysql.createConnection({
   host:'0.tcp.in.ngrok.io',  // Your MySQL host
