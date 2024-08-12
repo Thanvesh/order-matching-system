@@ -14,13 +14,13 @@ app.post('/api/order', async (req, res) => {
 
   try {
     if (type === 'buyer') {
-      await db.promise().query(
+      await db.query(
         'INSERT INTO pending_orders (buyer_price, buyer_qty, seller_price, seller_qty) VALUES (?, ?, NULL, NULL)',
         [price, qty]
       );
       res.status(201).json({ message: 'Buyer order placed successfully!' });
     } else if (type === 'seller') {
-      await db.promise().query(
+      await db.query(
         'INSERT INTO pending_orders (seller_price, seller_qty, buyer_price, buyer_qty) VALUES (?, ?, NULL, NULL)',
         [price, qty]
       );
@@ -40,11 +40,11 @@ app.post('/api/order', async (req, res) => {
 const matchOrder = async () => {
   try {
     // Fetch buyer and seller orders that can be matched
-    const [buyerOrders] = await db.promise().query(
+    const [buyerOrders] = await db.query(
       `SELECT * FROM pending_orders WHERE buyer_qty > 0 ORDER BY buyer_price DESC, created_at ASC`
     );
 
-    const [sellerOrders] = await db.promise().query(
+    const [sellerOrders] = await db.query(
       `SELECT * FROM pending_orders WHERE seller_qty > 0 ORDER BY seller_price ASC, created_at ASC`
     );
 
@@ -71,40 +71,40 @@ const matchOrder = async () => {
           const matchQty = Math.min(remainingBuyerQty, seller.seller_qty);
 
           // Use transactions to ensure atomic updates
-          await db.promise().query('START TRANSACTION');
+          await db.query('START TRANSACTION');
 
           try {
             // Insert matched order into completed_orders
-            await db.promise().query(
+            await db.query(
               'INSERT INTO completed_orders (qty, price) VALUES (?, ?)',
               [matchQty, seller.seller_price]
             );
 
             // Update buyer and seller quantities
             remainingBuyerQty -= matchQty;
-            await db.promise().query(
+            await db.query(
               'UPDATE pending_orders SET buyer_qty = ? WHERE id = ?',
               [remainingBuyerQty, buyer.id]
             );
 
-            await db.promise().query(
+            await db.query(
               'UPDATE pending_orders SET seller_qty = ? WHERE id = ?',
               [seller.seller_qty - matchQty, seller.id]
             );
 
             // Commit transaction if no errors
-            await db.promise().query('COMMIT');
+            await db.query('COMMIT');
 
             // Remove seller order if fully matched
             if (seller.seller_qty - matchQty === 0) {
-              await db.promise().query('DELETE FROM pending_orders WHERE id = ?', [seller.id]);
+              await db.query('DELETE FROM pending_orders WHERE id = ?', [seller.id]);
             }
 
             // Exit inner loop if buyer's quantity is fully matched
             if (remainingBuyerQty === 0) break;
           } catch (err) {
             // Rollback transaction in case of error
-            await db.promise().query('ROLLBACK');
+            await db.query('ROLLBACK');
             throw err;
           }
         }
@@ -112,7 +112,7 @@ const matchOrder = async () => {
 
       // Remove buyer order if fully matched
       if (remainingBuyerQty === 0) {
-        await db.promise().query('DELETE FROM pending_orders WHERE id = ?', [buyer.id]);
+        await db.query('DELETE FROM pending_orders WHERE id = ?', [buyer.id]);
       }
     }
   } catch (err) {
@@ -124,7 +124,7 @@ const matchOrder = async () => {
 // Get all pending orders
 app.get('/api/orders/pending', async (req, res) => {
   try {
-    const [results] = await db.promise().query(
+    const [results] = await db.query(
       `SELECT buyer_qty, buyer_price, NULL AS seller_price, NULL AS seller_qty FROM pending_orders WHERE buyer_qty > 0
        UNION ALL
        SELECT NULL AS buyer_qty, NULL AS buyer_price, seller_price, seller_qty FROM pending_orders WHERE seller_qty > 0`
@@ -139,7 +139,7 @@ app.get('/api/orders/pending', async (req, res) => {
 // Get all completed orders
 app.get('/api/orders/completed', async (req, res) => {
   try {
-    const [results] = await db.promise().query('SELECT price, SUM(qty) as qty FROM completed_orders GROUP BY price  ORDER BY Price desc');
+    const [results] = await db.query('SELECT price, SUM(qty) as qty FROM completed_orders GROUP BY price  ORDER BY Price desc');
     res.json(results);
   } catch (err) {
     console.error('Error fetching completed orders:', err);
